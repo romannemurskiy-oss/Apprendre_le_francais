@@ -1,0 +1,478 @@
+import telebot
+import random
+import json
+import os
+from datetime import datetime, date
+from telebot import types
+
+TOKEN = os.getenv("BOT_TOKEN")
+
+if not TOKEN:
+    raise ValueError("BOT_TOKEN not found")
+
+bot = telebot.TeleBot(TOKEN)
+
+DATA_FILE = "users.json"
+
+# ==========================
+# FRENCH JOKES
+# ==========================
+french_jokes = [
+    "Pourquoi les plongeurs plongent-ils toujours en arrière et jamais en avant ? Parce que sinon ils tombent dans le bateau.",
+    "Quel est le comble pour un électricien ? De ne pas être au courant.",
+    "Pourquoi les fantômes sont-ils mauvais en mensonge ? Parce qu’on peut lire à travers eux.",
+    "Que dit une imprimante dans l’eau ? J’ai papier !",
+    "Pourquoi les poissons n’aiment pas l’ordinateur ? Parce qu’ils ont peur du net.",
+    "Quel est le fruit préféré des militaires ? La grenade.",
+    "Pourquoi le livre de maths est triste ? Parce qu’il a trop de problèmes.",
+    "Que fait une fraise sur un cheval ? Tagada tagada.",
+    "Pourquoi les canards sont toujours à l’heure ? Parce qu’ils sont dans l’étang.",
+    "Quel est le comble pour un jardinier ? De raconter des salades."
+]
+
+# ==========================
+# FACTS ABOUT FRANCE
+# ==========================
+france_facts = [
+    "La France est le pays le plus visité au monde.",
+    "La Tour Eiffel a été construite en 1889.",
+    "Il existe plus de 1 200 variétés de fromages français.",
+    "Le Louvre est le plus grand musée d'art au monde.",
+    "Le français est parlé dans plus de 25 pays.",
+    "La fête nationale est le 14 juillet.",
+    "Paris est surnommée la Ville Lumière.",
+    "Le TGV détient le record du monde de vitesse sur rail.",
+    "La France a le plus grand nombre de prix Nobel de littérature.",
+    "Le Mont Blanc est le plus haut sommet d'Europe occidentale."
+]
+
+# ==========================
+# TRUE / FALSE GAME
+# ==========================
+true_false_facts = [
+    ("En France, il est interdit de jeter la nourriture des supermarchés.", True),
+    ("La Tour Eiffel est plus vieille que le Colisée.", False),
+    ("Le coq est un symbole national français.", True),
+    ("Paris est la capitale de l'Allemagne.", False),
+    ("Le Louvre était autrefois un château.", True),
+    ("La France a une frontière avec le Brésil.", True),
+    ("La langue officielle du Canada est uniquement l'anglais.", False),
+    ("Le français est une langue latine.", True),
+    ("Le Mont Blanc est situé en Belgique.", False),
+    ("La baguette est un pain traditionnel français.", True)
+]
+
+# ==========================
+# WORD GUESSING GAME (SPY)
+# ==========================
+spy_game_words = [
+    ("C'est un fruit rouge.", "pomme"),
+    ("C'est un animal qui dit 'miaou'.", "chat"),
+    ("C'est une boisson chaude avec du lait.", "café"),
+    ("C'est un endroit où on étudie.", "école"),
+    ("C'est un objet pour écrire.", "stylo"),
+    ("C'est un moyen de transport avec deux roues.", "vélo"),
+    ("C'est un animal qui aboie.", "chien"),
+    ("C'est un fruit jaune.", "banane"),
+    ("C'est un grand bâtiment où on voit des œuvres d'art.", "musée"),
+    ("C'est un pays en Europe connu pour la Tour Eiffel.", "france")
+]
+
+# ==========================
+# QUIZ LEVELS
+# ==========================
+quiz_levels = {
+    "facile": [
+        ("Bonjour", "Hello"), ("Merci", "Thank you"), ("Chat", "Cat"), ("Chien", "Dog"),
+        ("Pomme", "Apple"), ("Eau", "Water"), ("Pain", "Bread"), ("Lune", "Moon"),
+        ("Soleil", "Sun"), ("Lait", "Milk"), ("Fille", "Girl"), ("Garçon", "Boy"),
+        ("Ciel", "Sky"), ("Mer", "Sea"), ("Arbre", "Tree"), ("Oiseau", "Bird"),
+        ("Rouge", "Red"), ("Bleu", "Blue"), ("Vert", "Green"), ("Noir", "Black"),
+        ("Un", "One"), ("Deux", "Two"), ("Trois", "Three"), ("Ami", "Friend")
+    ],
+    "moyen": [
+        ("Maison", "House"), ("Voiture", "Car"), ("Fleur", "Flower"), ("Livre", "Book"),
+        ("École", "School"), ("Aéroport", "Airport"), ("Gare", "Train station"),
+        ("Fenêtre", "Window"), ("Porte", "Door"), ("Cheval", "Horse"),
+        ("Chaise", "Chair"), ("Table", "Table"), ("Cuisine", "Kitchen"), ("Travail", "Work"),
+        ("Aujourd'hui", "Today"), ("Demain", "Tomorrow"), ("Manger", "To eat"), ("Boire", "To drink"),
+        ("Dormir", "To sleep"), ("Regarder", "To watch"), ("Écouter", "To listen"), ("Voyage", "Trip")
+    ],
+    "difficile": [
+        ("Bibliothèque", "Library"), ("Pharmacie", "Pharmacy"), ("Environnement", "Environment"),
+        ("Technologie", "Technology"), ("Responsabilité", "Responsibility"),
+        ("Gouvernement", "Government"), ("Développement", "Development"),
+        ("Connaissance", "Knowledge"), ("Expérience", "Experience"), ("Indépendance", "Independence"),
+        ("Éducation", "Education"), ("Imagination", "Imagination"), ("Opportunité", "Opportunity"),
+        ("Amélioration", "Improvement"), ("Communication", "Communication"), ("Réussite", "Success"),
+        ("Différence", "Difference"), ("Partage", "Sharing"), ("Vitesse", "Speed")
+    ]
+}
+
+# ==========================
+# VERB QUIZ
+# ==========================
+verb_quiz = {
+    "facile": [("parler", "er"), ("aimer", "er"), ("jouer", "er"), ("manger", "er"), ("finir", "ir"), ("choisir", "ir")],
+    "moyen": [("vendre", "re"), ("attendre", "re"), ("réussir", "ir"), ("grandir", "ir"), ("regarder", "er"), ("voyager", "er")],
+    "difficile": [("prendre", "er"), ("faire", "er"), ("aller", "er"), ("avoir", "er"), ("être", "er")]
+}
+
+conjugation_endings = {
+    "er": {"je": "e", "tu": "es", "il/elle": "e", "nous": "ons", "vous": "ez", "ils/elles": "ent"},
+    "ir": {"je": "is", "tu": "is", "il/elle": "it", "nous": "issons", "vous": "issez", "ils/elles": "issent"},
+    "re": {"je": "s", "tu": "s", "il/elle": "", "nous": "ons", "vous": "ez", "ils/elles": "ent"}
+}
+
+# ==========================
+# GRAMMAR QUIZ
+# ==========================
+grammar_quiz = {
+    "facile": [
+        ("D'habitude, Roman ___ au basketball après l'école.", "joue", ["joues", "a joué", "jouer", "joue"]),
+        ("Chaque matin, je ___ du café.", "bois", ["bois", "boit", "boire", "bu"]),
+        ("Nous ___ à l'école à 8 heures.", "allons", ["allez", "vas", "allons", "aller"]),
+        ("Il ___ toujours très vite.", "court", ["courir", "court", "courent", "a couru"])
+    ],
+    "moyen": [
+        ("Hier, nous ___ au cinéma.", "sommes allés", ["allons", "sommes allés", "aller", "allé"]),
+        ("Demain, tu ___ ton examen.", "passeras", ["passes", "passeras", "passé", "passer"]),
+        ("Elle ___ une lettre en ce moment.", "écrit", ["écris", "écrit", "écrire", "écrivent"])
+    ],
+    "difficile": [
+        ("Si j'avais plus de temps, je ___ plus souvent.", "voyagerais", ["voyage", "voyagerai", "voyagerais", "voyagé"]),
+        ("Il faut que tu ___ plus attention.", "fasses", ["fais", "feras", "fasses", "faire"])
+    ]
+}
+
+
+# ==========================
+# DATA SYSTEM
+# ==========================
+def load_data():
+    if not os.path.exists(DATA_FILE):
+        return {}
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_data():
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=4, ensure_ascii=False)
+
+users = load_data()
+
+
+# ==========================
+# USER INIT
+# ==========================
+def init_user(chat_id):
+    chat_id = str(chat_id)
+
+    if chat_id not in users:
+        users[chat_id] = {}
+
+    defaults = {
+        "score": 0,
+        "difficulty": "facile",
+        "game_answer": "",
+        "game_state": "",
+        "quizzes_done": 0,
+        "streak": 0,
+        "last_day": "",
+        "achievements": []
+    }
+
+    for key, val in defaults.items():
+        if key not in users[chat_id]:
+            users[chat_id][key] = val
+
+    if users[chat_id]["difficulty"] not in quiz_levels:
+        users[chat_id]["difficulty"] = "facile"
+
+    save_data()
+
+
+def update_streak(chat_id):
+    today = str(date.today())
+    last_day = users[chat_id].get("last_day", "")
+
+    if last_day == "":
+        users[chat_id]["streak"] = 1
+    else:
+        last = datetime.strptime(last_day, "%Y-%m-%d").date()
+        now = date.today()
+
+        diff = (now - last).days
+        if diff == 1:
+            users[chat_id]["streak"] += 1
+        elif diff > 1:
+            users[chat_id]["streak"] = 1
+
+    users[chat_id]["last_day"] = today
+    save_data()
+
+
+def check_achievements(chat_id):
+    u = users[chat_id]
+    ach = set(u.get("achievements", []))
+
+    if u["quizzes_done"] >= 10:
+        ach.add("🥉 Novice: 10 quiz terminés")
+    if u["quizzes_done"] >= 50:
+        ach.add("🥈 Étudiant sérieux: 50 quiz terminés")
+    if u["quizzes_done"] >= 100:
+        ach.add("🥇 Machine: 100 quiz terminés")
+
+    if u["score"] >= 50:
+        ach.add("🎖 Apprenti: 50 points")
+    if u["score"] >= 100:
+        ach.add("🥈 Polyglotte: 100 points")
+    if u["score"] >= 200:
+        ach.add("🏆 Expert: 200 points")
+
+    if u["streak"] >= 3:
+        ach.add("🔥 Régulier: 3 jours d'affilée")
+    if u["streak"] >= 7:
+        ach.add("🔥 Série forte: 7 jours d'affilée")
+    if u["streak"] >= 30:
+        ach.add("👑 Légende: 30 jours d'affilée")
+
+    if u["difficulty"] == "difficile" and u["score"] >= 150:
+        ach.add("🥇 Roi Français: Niveau difficile + 150 points")
+
+    u["achievements"] = list(ach)
+    save_data()
+
+
+def get_rank(chat_id):
+    scores = [(uid, users[uid].get("score", 0)) for uid in users]
+    scores.sort(key=lambda x: x[1], reverse=True)
+
+    for i, (uid, sc) in enumerate(scores, start=1):
+        if uid == chat_id:
+            return i
+    return "?"
+
+
+def get_title(score):
+    if score < 30:
+        return "Débutant"
+    elif score < 80:
+        return "Apprenti"
+    elif score < 150:
+        return "Étudiant"
+    elif score < 250:
+        return "Avancé"
+    else:
+        return "Maître"
+
+
+# ==========================
+# MENU
+# ==========================
+def main_menu():
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.row("🧠 Quiz", "🎮 Mini-Jeux")
+    kb.row("😂 Blagues", "🇫🇷 Info France")
+    kb.row("🎚 Difficulté", "📊 Stats")
+    return kb
+
+
+# ==========================
+# START
+# ==========================
+@bot.message_handler(commands=["start"])
+def start(message):
+    init_user(message.chat.id)
+    bot.send_message(message.chat.id,
+                     "Salut ! Bienvenue dans ton école de français. 🇫🇷",
+                     reply_markup=main_menu())
+
+
+# ==========================
+# MINI GAMES MENU
+# ==========================
+@bot.message_handler(func=lambda msg: msg.text == "🎮 Mini-Jeux")
+def games_menu(message):
+    init_user(message.chat.id)
+
+    kb = types.InlineKeyboardMarkup()
+    kb.add(types.InlineKeyboardButton("🧩 Anagramme", callback_data="game_unscramble"))
+    kb.add(types.InlineKeyboardButton("🕵️ Le mot caché", callback_data="game_spy"))
+    kb.add(types.InlineKeyboardButton("✅❌ Vrai ou Faux", callback_data="game_truefalse"))
+    kb.add(types.InlineKeyboardButton("🔢 Maths en Français", callback_data="game_math"))
+
+    bot.send_message(message.chat.id, "Choisissez un mini-jeu :", reply_markup=kb)
+
+
+# ==========================
+# ANAGRAM GAME
+# ==========================
+@bot.callback_query_handler(func=lambda call: call.data == "game_unscramble")
+def start_unscramble(call):
+    chat_id = str(call.message.chat.id)
+    diff = users[chat_id]["difficulty"]
+
+    word = random.choice(quiz_levels[diff])[0].upper()
+    scrambled = list(word)
+    random.shuffle(scrambled)
+
+    while "".join(scrambled) == word:
+        random.shuffle(scrambled)
+
+    users[chat_id]["game_answer"] = word
+    users[chat_id]["game_state"] = "unscramble"
+    save_data()
+
+    bot.send_message(chat_id,
+                     f"🧩 **Anagramme**\n\nRemettez les lettres dans l'ordre :\n\n🔥 `{' '.join(scrambled)}` 🔥",
+                     parse_mode="Markdown")
+
+
+# ==========================
+# JOKES
+# ==========================
+@bot.message_handler(func=lambda msg: msg.text == "😂 Blagues")
+def joke(message):
+    init_user(message.chat.id)
+    bot.send_message(message.chat.id, "😂 " + random.choice(french_jokes))
+
+
+# ==========================
+# SPY GAME
+# ==========================
+@bot.callback_query_handler(func=lambda call: call.data == "game_spy")
+def start_spy(call):
+    chat_id = str(call.message.chat.id)
+
+    desc, answer = random.choice(spy_game_words)
+
+    users[chat_id]["game_answer"] = answer.lower()
+    users[chat_id]["game_state"] = "spy"
+    save_data()
+
+    bot.send_message(chat_id,
+                     f"🕵️ **Le mot caché**\n\n{desc}\n\n📝 Écris ta réponse :",
+                     parse_mode="Markdown")
+
+
+# ==========================
+# TRUE/FALSE GAME
+# ==========================
+@bot.callback_query_handler(func=lambda call: call.data == "game_truefalse")
+def start_truefalse(call):
+    chat_id = str(call.message.chat.id)
+
+    statement, is_true = random.choice(true_false_facts)
+
+    users[chat_id]["game_answer"] = "true" if is_true else "false"
+    users[chat_id]["game_state"] = "truefalse"
+    save_data()
+
+    kb = types.InlineKeyboardMarkup()
+    kb.add(
+        types.InlineKeyboardButton("✅ Vrai", callback_data="tf|true"),
+        types.InlineKeyboardButton("❌ Faux", callback_data="tf|false")
+    )
+
+    bot.send_message(chat_id,
+                     f"✅❌ *Vrai ou Faux ?*\n\n{statement}",
+                     reply_markup=kb,
+                     parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("tf|"))
+def answer_truefalse(call):
+    chat_id = str(call.message.chat.id)
+    chosen = call.data.split("|")[1]
+    correct = users[chat_id]["game_answer"]
+
+    if chosen == correct:
+        users[chat_id]["score"] += 2
+        res = "✅ Correct ! +2 points"
+    else:
+        res = "❌ Faux !"
+
+    users[chat_id]["game_answer"] = ""
+    users[chat_id]["game_state"] = ""
+    save_data()
+
+    check_achievements(chat_id)
+
+    next_kb = types.InlineKeyboardMarkup()
+    next_kb.add(types.InlineKeyboardButton("Suivant ➡️", callback_data="game_truefalse"))
+
+    bot.edit_message_text(res, chat_id, call.message.message_id, reply_markup=next_kb)
+
+
+# ==========================
+# MATH GAME
+# ==========================
+@bot.callback_query_handler(func=lambda call: call.data == "game_math")
+def start_math(call):
+    a = random.randint(1, 10)
+    b = random.randint(1, 10)
+    chat_id = str(call.message.chat.id)
+
+    users[chat_id]["game_answer"] = str(a + b)
+    users[chat_id]["game_state"] = "math"
+    save_data()
+
+    bot.send_message(chat_id, f"🔢 Combien font {a} plus {b} ? Écris la réponse en chiffres.")
+
+
+# ==========================
+# CHECK GAME TEXT ANSWERS
+# ==========================
+@bot.message_handler(func=lambda msg: users.get(str(msg.chat.id), {}).get("game_answer", "") != "")
+def check_game(message):
+    chat_id = str(message.chat.id)
+    correct = users[chat_id]["game_answer"]
+    state = users[chat_id]["game_state"]
+
+    if state in ["unscramble", "math", "spy"]:
+        if message.text.strip().lower() == correct.lower():
+            users[chat_id]["score"] += 2
+            users[chat_id]["game_answer"] = ""
+            users[chat_id]["game_state"] = ""
+            save_data()
+
+            check_achievements(chat_id)
+
+            bot.send_message(chat_id,
+                             f"🎉 **Bravo !**\n\nLa réponse était : *{correct}* (+2 points)",
+                             parse_mode="Markdown")
+        else:
+            bot.send_message(chat_id, "❌ Ce n'est pas ça... Réessaie !")
+
+
+# ==========================
+# STATS
+# ==========================
+@bot.message_handler(func=lambda msg: msg.text == "📊 Stats")
+def show_stats(message):
+    init_user(message.chat.id)
+    chat_id = str(message.chat.id)
+    u = users[chat_id]
+
+    check_achievements(chat_id)
+
+    rank = get_rank(chat_id)
+    title = get_title(u["score"])
+    ach_list = "\n".join(u["achievements"][:6]) if u["achievements"] else "Aucun pour le moment"
+
+    bot.send_message(message.chat.id,
+                     f"📊 *Ton progrès :*\n\n"
+                     f"🏆 Points : {u['score']}\n"
+                     f"🔥 Série : {u['streak']} jours\n"
+                     f"🎖 Titre : {title}\n"
+                     f"🌍 Classement : #{rank}\n\n"
+                     f"🏅 *Succès :*\n{ach_list}",
+                     parse_mode="Markdown")
+
+if __name__ == "__main__":
+    print("Bot started")
+    bot.infinity_polling()
